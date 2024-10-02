@@ -10,13 +10,16 @@
 
 namespace facebook::react {
 
+#define MAX_FUEL_RAW 30400
+#define MIN_FUEL_RAW 4900
+
 class NativeSampleModule : public NativeSampleModuleCxxSpec<NativeSampleModule> {
  public:
   NativeSampleModule(std::shared_ptr<CallInvoker> jsInvoker);
 
   std::string reverseString(jsi::Runtime& rt, std::string input);
   void storeAndCallJSCallback(jsi::Runtime& rt, jsi::Function jsCallback);
-  void callback(jsi::Runtime &rt, AsyncCallback<std::string> callback);
+  void getFuelPercentage(jsi::Runtime &rt, AsyncCallback<std::string> callback);
   void install(jsi::Runtime& rt);
 };
 

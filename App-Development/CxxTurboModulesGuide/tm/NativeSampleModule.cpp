@@ -1,7 +1,34 @@
 #include "NativeSampleModule.h"
 #include <thread>
+#include <fstream>
 
 namespace facebook::react {
+
+int readVoltageRaw(int channel) {
+    std::string basePath = "/sys/bus/iio/devices/iio:device1/in_voltage" + std::to_string(channel) + "_raw";
+    std::ifstream infile(basePath);
+    int rawValue = 0;
+    
+    if (infile.is_open()) {
+        infile >> rawValue;
+        infile.close();
+    } else {
+        // std::cerr << "Error opening file: " << basePath << std::endl;
+    }
+
+    return rawValue;
+}
+
+// Function to calculate the percentage based on the raw value, min, and max values
+int calculateFuelPercentage(int rawValue, int minVal, int maxVal) {
+    if (rawValue <= minVal) {
+        return 0;
+    } else if (rawValue >= maxVal) {
+        return 100;
+    } else {
+        return (rawValue - minVal) * 100 / (maxVal - minVal);
+    }
+}
 
 NativeSampleModule::NativeSampleModule(std::shared_ptr<CallInvoker> jsInvoker)
     : NativeSampleModuleCxxSpec(std::move(jsInvoker)) {}
@@ -37,14 +64,16 @@ void NativeSampleModule::storeAndCallJSCallback(jsi::Runtime& rt, jsi::Function 
     }).detach(); 
 }
 
-void NativeSampleModule::callback(jsi::Runtime &rt, AsyncCallback<std::string> callback) {
+void NativeSampleModule::getFuelPercentage(jsi::Runtime &rt, AsyncCallback<std::string> callback) {
     std::thread t([callback = std::move(callback)]() {
         int counter = 0;
         while (1)
         {
             /* code */
-            callback.call("works without any issues " + std::to_string(counter++));
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            int fuelRaw = readVoltageRaw(3);
+            int percentage = calculateFuelPercentage(fuelRaw, MIN_FUEL_RAW, MAX_FUEL_RAW);
+            callback.call(std::to_string(percentage));
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
         
     });
