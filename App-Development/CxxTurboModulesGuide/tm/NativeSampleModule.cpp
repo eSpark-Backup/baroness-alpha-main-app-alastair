@@ -1,8 +1,13 @@
 #include "NativeSampleModule.h"
 #include <thread>
 #include <fstream>
+#include "json.hpp"
+
+
 
 namespace facebook::react {
+
+using json = nlohmann::json;
 
 int readVoltageRaw(int channel) {
     std::string basePath = "/sys/bus/iio/devices/iio:device1/in_voltage" + std::to_string(channel) + "_raw";
@@ -19,15 +24,9 @@ int readVoltageRaw(int channel) {
     return rawValue;
 }
 
-// Function to calculate the percentage based on the raw value, min, and max values
-int calculateFuelPercentage(int rawValue, int minVal, int maxVal) {
-    if (rawValue <= minVal) {
-        return 0;
-    } else if (rawValue >= maxVal) {
-        return 100;
-    } else {
-        return (rawValue - minVal) * 100 / (maxVal - minVal);
-    }
+template <class X, class M, class N, class O, class Q>
+X mapGeneric(X x, M in_min, N in_max, O out_min, Q out_max){
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 NativeSampleModule::NativeSampleModule(std::shared_ptr<CallInvoker> jsInvoker)
@@ -64,18 +63,33 @@ void NativeSampleModule::storeAndCallJSCallback(jsi::Runtime& rt, jsi::Function 
     }).detach(); 
 }
 
-void NativeSampleModule::getFuelPercentage(jsi::Runtime &rt, AsyncCallback<std::string> callback) {
+void NativeSampleModule::getVehicleData(jsi::Runtime &rt, AsyncCallback<std::string> callback) {
     std::thread t([callback = std::move(callback)]() {
-        int counter = 0;
         while (1)
         {
-            /* code */
-            int fuelRaw = readVoltageRaw(3);
-            int percentage = calculateFuelPercentage(fuelRaw, MIN_FUEL_RAW, MAX_FUEL_RAW);
-            callback.call(std::to_string(percentage));
+            // Read raw voltages for fuel, speedometer, and tachometer
+            int rawFuelVoltage = readVoltageRaw(FUEL_CHANNEL);
+            int rawSpeedometerVoltage = readVoltageRaw(SPEEDOMETER_CHANNEL);
+            int rawTachometerVoltage = readVoltageRaw(TACHOMETER_CHANNEL);
+
+            // Map the raw voltages to percentages or RPM values
+            int fuelPercentage = mapGeneric(rawFuelVoltage, MIN_FUEL_RAW, MAX_FUEL_RAW, 0, 100);
+            int speedometerRPM = mapGeneric(rawSpeedometerVoltage, MIN_RPM_RAW, MAX_RPM_RAW, MIN_RPM_SPEEDOMETER, MAX_RPM_SPEEDOMETER);
+            int tachometerRPM = mapGeneric(rawTachometerVoltage, MIN_RPM_RAW, MAX_RPM_RAW, MIN_RPM_TACHOMETER, MAX_RPM_TACHOMETER);
+
+             // Create a JSON object to pass all values
+            json result = {
+                {"fuel", fuelPercentage},
+                {"speedometerRPM", speedometerRPM},
+                {"tachometerRPM", tachometerRPM}
+            };
+
+            // Pass the result back to JavaScript in string format
+            callback.call(result.dump());
+
+            // Sleep for 250 milliseconds before the next reading
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
-        
     });
     t.detach();
 }

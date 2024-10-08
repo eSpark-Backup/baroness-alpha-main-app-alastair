@@ -14,14 +14,20 @@ import NativeSampleModule from './tm/NativeSampleModule';
 
 function App(): React.JSX.Element {
   const [fuelPercentage, setFuelPercentage] = useState(0);
+  const [speedometerRPM, setspeedometerRPM] = useState(0);
+  const [tachometerRPM, settachometerRPM] = useState(0);
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
   useEffect(() => {
-    NativeSampleModule.getFuelPercentage((result) => {
-      setFuelPercentage(parseInt(result, 10)); // Ensure the result is an integer
+    NativeSampleModule.getVehicleData((result) => {
+      // Parse the JSON string to extract the values
+      const data = JSON.parse(result);
+      setFuelPercentage(data.fuel);
+      setspeedometerRPM(data.speedometerRPM);
+      settachometerRPM(data.tachometerRPM);
     });
   }, []);
 
@@ -38,6 +44,21 @@ function App(): React.JSX.Element {
             {`Remaining Fuel: ${fuelPercentage}%`}
           </Text>
         </View>
+
+        <View style={styles.container}>
+          <Text style={styles.title}>Tachometer</Text>
+          <Text style={styles.fuelText}>
+            {`RPM: ${tachometerRPM}`}
+          </Text>
+        </View>
+
+        <View style={styles.container}>
+          <Text style={styles.title}>SpeedoMeter</Text>
+          <Text style={styles.fuelText}>
+            {`RPM: ${speedometerRPM}`}
+          </Text>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -58,7 +79,7 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     width: '100%',
-    height: 30,
+    height: 25,
     borderRadius: 15,
     backgroundColor: Colors.lightGray,
     overflow: 'hidden',
@@ -70,7 +91,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   fuelText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     color: Colors.primary,
   },

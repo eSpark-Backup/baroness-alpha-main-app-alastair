@@ -12,6 +12,9 @@ add_library(tm STATIC ${tm_SRC})
 target_include_directories(tm PUBLIC .)
 target_include_directories(react_codegen_AppSpecs PUBLIC .)
 
+# Include nlohmann/json header
+include_directories(./lib/json)
+
 target_link_libraries(tm
         jsi
         react_nativemodule_core

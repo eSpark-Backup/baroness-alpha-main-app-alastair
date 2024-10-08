@@ -3,7 +3,7 @@ import { TurboModule, TurboModuleRegistry } from "react-native";
 export interface Spec extends TurboModule {
   readonly reverseString: (input: string) => string;
   readonly storeAndCallJSCallback: (callback: (result: string) => void) => void;
-  readonly getFuelPercentage: (callback: (result: string) => void) => void;
+  readonly getVehicleData: (callback: (result: string) => void) => void;
   readonly install: () => void;
   
 }
